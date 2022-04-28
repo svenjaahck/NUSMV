@@ -16,13 +16,11 @@ ASSIGN
   next (torch) := case
     traveling[0] | traveling[1] | traveling[2] | traveling[3] : !torch;
     TRUE: torch;
-    -- rule: torch can only move if carried
   esac;
 
   next (location[0]) := case
     traveling[0] & torch = location[0]: !location[0];
     TRUE: location[0];
-    -- rule: location changes if "0" is traveling
   esac;
 
   next (location[1]) := case
@@ -41,8 +39,6 @@ ASSIGN
   esac;
 
 
-
- 
   next(time) := case
   time > 90: 90;
   traveling[0]: time + 10;
