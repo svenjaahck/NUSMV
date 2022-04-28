@@ -8,7 +8,7 @@ VAR
   choice:  boolean;
   payment: boolean;
   acc_payment: boolean;
-  state:   { ready, expect_payment, dispense_item };
+  state:   { ready, expect_payment, dispense_item};
   n_items: 0..10; -- initializing a numerical number as a stock counter of the item in store --check_ltlspec -p "G(n_items >= 0)" is true
 
 ASSIGN
@@ -24,21 +24,19 @@ ASSIGN
   init (acc_payment) := FALSE;
   next (acc_payment) := (state = expect_payment & payment & choice & n_items > 0);--adding the variable choice there prevents that there can be an accepted payment without a choice -- payment should not be accepted if there are no items left so we added n_items > 0--check_ltlspec -p "G(acc_payment = TRUE -> n_items > 0)" is true
   next (n_items) := case
-			release_item & n_items > 0 : 	n_items - 1; -- when a item is released of the vending machine, the amount of items need to be reduced by one. 
-	--When there is no item left, nothing can be released. That also has to be defined for the release_item state
-    TRUE: 											n_items;
+			state = dispense_item & n_items > 0: 	n_items - 1; -- when a item is released of the vending machine, the amount of items need to be reduced by one. --When there is no item left, nothing can be released. That also has to be defined for the release_item state
+			TRUE: 											n_items;
   esac;
-DEFINE
-  release_item := (state = dispense_item);
+
 
 LTLSPEC
-  G(acc_payment -> F release_item);
+  G(acc_payment -> F state = dispense_item);
 LTLSPEC
-  G(n_items >= 0);
+  G(n_items >= 0); -- the amount of items should always be greater or equal to zero
 LTLSPEC
-  G(acc_payment = TRUE -> n_items > 0);
+  G(acc_payment -> n_items > 0); -- when the payment is accepted n_items should be higher then 0
 LTLSPEC
-G(state=dispense_item & n_items>0 -> next(n_items-1));
+G((state=dispense_item & n_items>0) -> next(n_items)= n_items - 1); -- n_items should be reduced by one when the vending machine is in the state dispense_item
   
 /--error due to an existing loop when acc_payment is true and the state is back to ready. Going back to ready when payment is already accepted should not be possible.
 Therefore we need a stricter case condition. The error message in NuSMV is the following:
@@ -74,10 +72,5 @@ Trace Type: Counterexample
   next (acc_payment) := (state = expect_payment & payment & choice);
   
 By Adding choice in acc_payment we could include the affection of making a choice in acc_payment so the variables can step in the dispense item state.
-
-LTL Specifications:
-1. G(n_items >= 0)
-2. G(acc_payment = TRUE -> n_items > 0)
-3. G(n_items.state = dispense_item -> G n_items-1)
 
 --/
