@@ -27,7 +27,9 @@ ASSIGN
 			state = dispense_item & n_items > 0: 	n_items - 1; -- when a item is released of the vending machine, the amount of items need to be reduced by one. --When there is no item left, nothing can be released. That also has to be defined for the release_item state
 			TRUE: 											n_items;
   esac;
-
+  
+DEFINE
+  release_item := (state = dispense_item);
 
 LTLSPEC
   G(acc_payment -> F state = dispense_item);
@@ -41,7 +43,7 @@ G((state=dispense_item & n_items>0) -> next(n_items)= n_items - 1); -- n_items s
 /--error due to an existing loop when acc_payment is true and the state is back to ready. Going back to ready when payment is already accepted should not be possible.
 Therefore we need a stricter case condition. The error message in NuSMV is the following:
 
-NuSMV > check_ltlspec -p "G(acc_payment -> F release_item)"
+NuSMV > check_ltlspec -p "G(acc_payment -> F dispense_item)"
 -- specification  G (acc_payment ->  F release_item)  is false
 -- as demonstrated by the following execution sequence
 Trace Description: LTL Counterexample
