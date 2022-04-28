@@ -1,0 +1,67 @@
+MODULE user(semaphore, cond)
+VAR
+  state : { idle, entering, critical, exiting };
+ASSIGN
+  init(state) := idle;
+  next(state) := case
+  -- The condition is required in order to change state 
+    state = idle & cond : { idle, entering };
+    state = entering & !semaphore & cond: critical;
+    state = critical & cond : { critical, exiting };
+    state = exiting & cond : idle;
+    TRUE : state;
+  esac;
+
+MODULE main
+VAR
+  cond : {0, 1}; 
+  -- condition variable specifing a running process
+  semaphore : boolean;
+  proc1 : user(semaphore, next(cond)= 0);
+  proc2 : user(semaphore, next(cond)= 1);
+ASSIGN
+  init(semaphore) := FALSE;
+  
+  -- semaphore should react to entering or exiting
+  
+  next(semaphore) := case
+    next(cond) = 0 & proc1.state = entering: TRUE;
+    next(cond) = 0 & proc1.state = exiting: FALSE;
+    next(cond) = 1 & proc2.state = entering: TRUE;
+    next(cond) = 1 & proc2.state = exiting: FALSE;
+    TRUE : semaphore;
+  esac;
+  
+  -- Equal FAIRNESS of entering state critical
+  FAIRNESS
+  proc1.state = critical;
+  
+  FAIRNESS
+  proc2.state = critical;
+  
+
+SPEC AG !(proc1.state = critical & proc2.state = critical); -- safety
+
+SPEC AG (proc1.state = entering -> AF proc1.state = critical); -- liveness
+
+/--
+   Error trace where FAIRNESS NOT ENABLED
+  -- specification AG !(proc1.state = critical & proc2.state = critical)  is true
+  -- specification AG (proc1.state = entering -> AF proc1.state = critical)  is false
+  -- as demonstrated by the following execution sequence
+  
+  Trace Description: CTL Counterexample 
+  Trace Type: Counterexample 
+    -> State: 1.1 <-
+      cond = 0
+      semaphore = FALSE
+      proc1.state = idle
+      proc2.state = idle
+    -> State: 1.2 <-
+      proc1.state = entering
+    -- Loop starts here
+    -> State: 1.3 <-
+      cond = 1
+    -> State: 1.4 <-
+
+--/
