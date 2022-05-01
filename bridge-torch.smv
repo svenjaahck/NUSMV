@@ -1,3 +1,8 @@
+
+/--
+Group 6: Noah Rahimzadagan, Philipe Granhäll, Svenja Haeckel
+--/
+
 MODULE main
 VAR
   location : array 0..3 of boolean;

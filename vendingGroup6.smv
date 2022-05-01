@@ -24,13 +24,13 @@ ASSIGN
   init (acc_payment) := FALSE;
   next (acc_payment) := (state = expect_payment & payment & choice & n_items > 0);--adding the variable choice there prevents that there can be an accepted payment without a choice -- payment should not be accepted if there are no items left so we added n_items > 0--check_ltlspec -p "G(acc_payment = TRUE -> n_items > 0)" is true
   next (n_items) := case
-			state = dispense_item & n_items > 0: 	n_items - 1; -- when a item is released of the vending machine, the amount of items need to be reduced by one. --When there is no item left, nothing can be released. That also has to be defined for the release_item state
+			state = dispense_item & n_items > 0: 	n_items - 1; -- when a item is released of the vending machine, the amount of items need to be reduced by one. --When there is no item left, nothing can be released. That also has to be defined for the release_item state.
 			TRUE: 											n_items;
   esac;
   
 DEFINE
   release_item := (state = dispense_item);
-
+  
 LTLSPEC
   G(acc_payment -> F state = dispense_item);
 LTLSPEC
