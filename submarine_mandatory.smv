@@ -27,14 +27,13 @@ ASSIGN
   -- the hatch stays closed when locked and closes non-deterministically when it is open
 
   next (depth) := case -- next depth depending on direction
-		emergency : depth = 0;-- in emergency the only goal is to get back to depth  = 0;
-		direction = up : next(sub.depth) = depth - 1; -- if the direction is up, the depth is reduced by one
-		direction = down : next(sub.depth) = depth + 1; -- if the direction is down, the depth is increasing by one
-		direction = flat : depth; -- if the direction is flat, the depth remains the same
-		TRUE: 0..10;
+	depth < 0 : 0; -- in emergency the only goal is to get back to depth  = 0;
+	depth > 10 : depth - 1; -- if the direction is up, the depth is reduced by one
+	depth < 1 : depth + 1; -- if the direction is down, the depth is increasing by one
+	depth > 0 & depth < 11 : depth; -- if the direction is flat, the depth remains the same
+	TRUE: depth;
     -- TODO: define next state
-
-  esac;
+	esac;
 
 MODULE main
 VAR
@@ -77,18 +76,18 @@ ASSIGN
   
 /--
 -- Properties --
-  --LTLSPEC
-  --G(next(sub.depth) = (sub.depth - 1)| sub.depth | sub.depth + 1);--safety -- 1. The depth never changes by more than one unit per step.
+  LTLSPEC
+  G(next(sub.depth) = (sub.depth - 1| sub.depth | sub.depth + 1);--safety -- 1. The depth never changes by more than one unit per step.
   LTLSPEC
   G(sub.depth >= 0 & sub.depth <= 10);--safety -- 2. The depth always stays within interval 0..10.
   LTLSPEC
-  G(F next(sub.depth) = 0);--liveness -- 3. The submarine always has the capability to get back to the surface.
+  G(F next(sub.depth) = 0);--liveness -- 3. The submarine always has the capability to get back to the surface.--Fairness property?
   LTLSPEC
-  G((F next(depth) = target_depth) U (sub.depth = 0);--liveness -- 4. The submarine has the capability to reach target_depth , unless there is an emergency.
+  G((F next(sub.depth) = target_depth) U sub.emergency);--liveness -- 4. The submarine has the capability to reach target_depth , unless there is an emergency.
   LTLSPEC
-  G(emergency -> !(next(depth) = sub.depth - 1);--safety -- 5. In an emergency or when the hatch is open, the submarine does not go down.
+  G(emergency -> !(next(sub.depth) = sub.depth - 1));--safety -- 5. In an emergency or when the hatch is open, the submarine does not go down.
   LTLSPEC
-  G(sub.hatch = open -> !(next(sub.depth - 1);--safety -- 5. In an emergency or when the hatch is open, the submarine does not go down.
+  G(sub.hatch = open -> !(next(sub.depth) = sub.depth - 1));--safety -- 5. In an emergency or when the hatch is open, the submarine does not go down.
   LTLSPEC
   G(emergency U sub.depth = 0);--safety -- 6. An emergency can only be resolved by resurfacing (so emergency cannot go back to false once set unless depth=0.
   LTLSPEC
@@ -102,6 +101,41 @@ ASSIGN
 
 --/
 
+/--
+Example error trace for a mutated model 
+case definition for depth before:
+  next (depth) := case -- next depth depending on direction
+	depth < 0 : depth = 0; -- in emergency the only goal is to get back to depth  = 0;
+	direction = up : depth - 1; -- if the direction is up, the depth is reduced by one
+	direction = down : depth + 1; -- if the direction is down, the depth is increasing by one
+	direction = flat : depth; -- if the direction is flat, the depth remains the same
+	TRUE: depth;
+    -- TODO: define next state
+	esac;
+--error message
+TYPE ERROR file submarine_mandatory.smv: line 36 : illegal types of "case" list elements : boolean and integer
+
+file submarine_mandatory.smv: Type System Violation detected
+--wrong definition of cases, case elements should be either boolean or integer
+after:
+
+--/
+
+/--
+Example error trace for a mutated property(wrong definition of a property)
+
+--/
+/--
+simulate -i -k 5 simulate 5 states and document the outcome
+--/
+
+/--
+missing feature in the model
+--/
+
+/--
+property for missing feature
+--/
 
 
 
