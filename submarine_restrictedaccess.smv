@@ -89,6 +89,12 @@ ASSIGN
 
   FAIRNESS
   sub.lock = locked;
+  
+  FAIRNESS
+  sub.territory = friendly;
+  
+  FAIRNESS
+  sub.territory = restricted;
 
   
   
