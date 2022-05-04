@@ -27,11 +27,9 @@ ASSIGN
   -- the hatch stays closed when locked and closes non-deterministically when it is open
 
   next (depth) := case -- next depth depending on direction
-	depth = 10 & direction = down : depth ;
-	depth = 0 & direction = up: depth;
-	direction = flat : depth; -- 
-	direction = up : depth - 1; -- if the direction is up, the depth is reduced by one
-	direction = down : depth + 1; -- if the direction is down, the depth is increasing by one
+	direction = flat : depth; -- if the direction is flat, the depth remains the same
+	direction = up & depth > 0: depth - 1; -- if the direction is up, the depth is reduced by one
+	direction = down & depth < 10: depth + 1; -- if the direction is down, the depth is increasing by one
 	TRUE: depth;
     -- TODO: define next state
 	esac;
@@ -52,7 +50,7 @@ ASSIGN
   next (sub.lock) := case -- control lock
     next(sub.hatch) = open: unlocked; -- cannot lock an open hatch
 	sub.depth > 0: locked; -- lock hatch if depth is greater than zero
-	sub.depth = 0 & next(sub.depth) = 1: locked; -- lock if a dive is about to be initiated(going from depth = 0 to depth = 1)
+	sub.depth = 0 & next(sub.direction) = down: locked; -- lock if a dive is about to be initiated(going from depth = 0 to depth = 1)
     -- TODO: ensure hatch is locked when needed
     TRUE: { locked, unlocked };
   esac;
@@ -66,17 +64,24 @@ ASSIGN
   init (sub.direction) := flat; -- flat when controller restarts
 
   next (sub.direction) := case
-	 sub.depth = 0: {flat,down};
-	 emergency: up;
-	 target_reached : {up, flat};
-	 !target_reached : down;
-	 -- TODO: direction control
-
+	 target_reached : flat;
+	 !target_reached & !emergency & target_depth > sub.depth : down;
+	 emergency & sub.depth > 0: up;
+	 emergency & sub.depth = 0: flat;
+	 !emergency & sub.depth = 0 & sub.hatch = closed: { flat, down };
+	 sub.depth = 0: {flat, down};
+	 sub.depth = 10: {flat, up};
     TRUE: { up, flat, down };
   esac;
   
   FAIRNESS
   sub.depth = 0;
+  /--
+  FAIRNESS
+  sub.direction = up;
+  --/
+  
+  
   
  
 -- Properties --
@@ -86,11 +91,12 @@ ASSIGN
   LTLSPEC
   G(sub.depth >= 0 & sub.depth <= 10);--safety -- 2. The depth always stays within interval 0..10.--true
   LTLSPEC
-  G(F next(sub.depth) = 0);--liveness -- 3. The submarine always has the capability to get back to the surface.--Fairness property?--false
+  G(F next(sub.depth) = 0);--liveness -- 3. The submarine always has the capability to get back to the surface.--Fairness property?--true
+  CTLSPEC
+  AG(!emergency -> AF(emergency | target_reached));--liveness -- 4. The submarine has the capability to reach target_depth , unless there is an emergency.--true
   LTLSPEC
-  G((F next(sub.depth) = target_depth) U emergency);--liveness -- 4. The submarine has the capability to reach target_depth , unless there is an emergency.--false
-  LTLSPEC
-  G(emergency -> !(next(sub.depth) = sub.depth - 1));--safety -- 5. In an emergency or when the hatch is open, the submarine does not go down.--true
+  G((emergency | sub.hatch = open) -> next(sub.direction) != down);--safety -- 5. In an emergency or when the hatch is open, the submarine does not go down.--false
+  /--
   LTLSPEC
   G(sub.hatch = open -> !(next(sub.depth) = sub.depth - 1));--safety -- 5. In an emergency or when the hatch is open, the submarine does not go down.
   LTLSPEC
@@ -103,26 +109,32 @@ ASSIGN
   G(sub.submerged -> sub.lock = locked);--safety -- 9. The hatch lock must be locked whenever depth>0.
   LTLSPEC
   G!(sub.hatch = open -> sub.lock = locked);-- safety --10. The lock can only be in state locked when the hatch is closed.
+  --/
 
 
 /--
 Example error trace for a mutated model 
-case definition for depth before:
-  next (depth) := case -- next depth depending on direction
-	depth < 0 : depth = 0; -- in emergency the only goal is to get back to depth  = 0;
+before:
+next (depth) := case -- next depth depending on direction
+	depth = 0 & direction = up: depth; -- ensuring the depth can not go more up after surface is reached 
+	direction = flat : depth; -- if the direction is flat, the depth remains the same
 	direction = up : depth - 1; -- if the direction is up, the depth is reduced by one
 	direction = down : depth + 1; -- if the direction is down, the depth is increasing by one
-	direction = flat : depth; -- if the direction is flat, the depth remains the same
 	TRUE: depth;
-    -- TODO: define next state
 	esac;
 --error message
-TYPE ERROR file submarine_mandatory.smv: line 36 : illegal types of "case" list elements : boolean and integer
+file submarine_mandatory.smv: line 36: cannot assign value 11 to variable sub.depth
 
-file submarine_mandatory.smv: Type System Violation detected
---wrong definition of cases, case elements should be either boolean or integer. that is why we do not have to assign zero to depth
+the direction should be flat at 10 and the depth should remain to not reach number 11 as a value
+--
 after:
-depth < 0 : 0; -- in emergency the only goal is to get back to depth  = 0;
+next (depth) := case -- next depth depending on direction
+	depth = 10 & direction = down : depth ; -- ensuring the depth remains the same when the maximum depth is reached
+	depth = 0 & direction = up: depth; -- ensuring the depth can not go more up after surface is reached 
+	direction = flat : depth; -- if the direction is flat, the depth remains the same
+	direction = up : depth - 1; -- if the direction is up, the depth is reduced by one
+	direction = down : depth + 1; -- if the direction is down, the depth is increasing by one
+	TRUE: depth;
 --/
 
 /--
