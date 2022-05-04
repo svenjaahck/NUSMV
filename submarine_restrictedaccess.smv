@@ -9,6 +9,7 @@ MODULE submarine
     lock:  { unlocked, locked }; -- hatch lock
     direction: { up, flat, down }; -- direction (controller by MAIN)
     depth: 0..10;  -- depth; depth always stays in a interval between 0 and 10
+    territory: {friendly, restricted};
 
 DEFINE
   submerged := depth > 0;
@@ -33,6 +34,13 @@ ASSIGN
 	TRUE: depth;
     -- TODO: define next state
 	esac;
+	
+  init(territory) := {friendly, restricted};
+  next(territory) := case
+    depth = 0 | next(depth) = 0: territory; --unsure
+    TRUE: territory;                       
+    esac;
+    
 
 MODULE main
 VAR
@@ -71,6 +79,7 @@ ASSIGN
 	 emergency & sub.depth > 0: up;
 	 emergency & sub.depth = 0: flat;
 	 !emergency & sub.depth = 0 & sub.lock = locked: { flat, down };
+	 sub.territory = restricted & next(sub.depth) = 2 : {down, flat};
 	 sub.depth = 10: {flat, up};
   TRUE: sub.direction;
   esac;
@@ -80,6 +89,12 @@ ASSIGN
 
   FAIRNESS
   sub.lock = locked;
+  
+  FAIRNESS
+  sub.territory = friendly;
+  
+  FAIRNESS
+  sub.territory = restricted;
 
   
   
@@ -111,6 +126,9 @@ ASSIGN
   LTLSPEC  
   G(sub.submerged -> sub.lock = locked);--safety -- 9. The hatch lock must be locked whenever depth>0.
   
-  LTLSPEC
+  LTLSPEC 
   G(sub.hatch = open -> sub.lock != locked);-- safety --10. The lock can only be in state locked when the hatch is closed.
+  
+  LTLSPEC
+  G(emergency = TRUE & sub.territory = restricted -> next(sub.depth) = 0 U emergency = TRUE); -- should not go up in restricted area unless emergency
 
