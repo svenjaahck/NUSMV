@@ -116,7 +116,6 @@ ASSIGN
 Example error trace for a mutated model 
 before:
 next (depth) := case -- next depth depending on direction
-	depth = 0 & direction = up: depth; -- ensuring the depth can not go more up after surface is reached 
 	direction = flat : depth; -- if the direction is flat, the depth remains the same
 	direction = up : depth - 1; -- if the direction is up, the depth is reduced by one
 	direction = down : depth + 1; -- if the direction is down, the depth is increasing by one
@@ -125,157 +124,90 @@ next (depth) := case -- next depth depending on direction
 --error message
 file submarine_mandatory.smv: line 36: cannot assign value 11 to variable sub.depth
 
-the direction should be flat at 10 and the depth should remain to not reach number 11 as a value
+the direction should be flat at 10 and the depth should remain to not reach number 11 as a value. That is why we added extra conditions for depth before reducing/ increasing it.
 --
 after:
-next (depth) := case -- next depth depending on direction
-	depth = 10 & direction = down : depth ; -- ensuring the depth remains the same when the maximum depth is reached
-	depth = 0 & direction = up: depth; -- ensuring the depth can not go more up after surface is reached 
+  next (depth) := case -- next depth depending on direction
 	direction = flat : depth; -- if the direction is flat, the depth remains the same
-	direction = up : depth - 1; -- if the direction is up, the depth is reduced by one
-	direction = down : depth + 1; -- if the direction is down, the depth is increasing by one
+	direction = up & depth > 0: depth - 1; -- if the direction is up, the depth is reduced by one
+	direction = down & depth < 10: depth + 1; -- if the direction is down, the depth is increasing by one
 	TRUE: depth;
+    -- TODO: define next state
+	esac;
 --/
 
 /--
 Example error trace for a mutated property
--- specification  G ((next(sub.depth) = sub.depth - 1 | next(sub.depth) = sub.depth) | next(sub.depth) = sub.depth + 1)  is true
--- specification  G (sub.depth >= 0 & sub.depth <= 10)  is true
--- specification  G ( F next(sub.depth) = 0)  is false
+-- specification  G (emergency -> !(sub.direction = down))  is false
 -- as demonstrated by the following execution sequence
 Trace Description: LTL Counterexample
 Trace Type: Counterexample
-  -- Loop starts here
-  -> State: 1.1 <-
-    sub.hatch = closed
-    sub.lock = locked
-    sub.direction = flat
-    sub.depth = 1
-    target_reached = FALSE
-    emergency = FALSE
-    target_depth = 2
-    sub.submerged = TRUE
-  -> State: 1.2 <-
--- specification  G (emergency -> !(next(sub.depth) = sub.depth - 1))  is true
--- specification  G (emergency U sub.depth = 0)  is false
--- as demonstrated by the following execution sequence
-Trace Description: LTL Counterexample
-Trace Type: Counterexample
-  -- Loop starts here
   -> State: 2.1 <-
     sub.hatch = closed
     sub.lock = locked
     sub.direction = flat
-    sub.depth = 1
+    sub.depth = 7
     target_reached = FALSE
     emergency = TRUE
-    target_depth = 2
+    target_depth = 8
     sub.submerged = TRUE
   -> State: 2.2 <-
--- specification  G (( F next(sub.depth) = target_depth) U emergency)  is false
--- as demonstrated by the following execution sequence
-Trace Description: LTL Counterexample
-Trace Type: Counterexample
-  -- Loop starts here
-  -> State: 3.1 <-
-    sub.hatch = closed
-    sub.lock = locked
-    sub.direction = flat
+    sub.direction = up
+  -> State: 2.3 <-
+    sub.depth = 6
+  -> State: 2.4 <-
+    sub.depth = 5
+  -> State: 2.5 <-
+    sub.depth = 4
+  -> State: 2.6 <-
+    sub.depth = 3
+  -> State: 2.7 <-
+    sub.depth = 2
+  -> State: 2.8 <-
     sub.depth = 1
-    target_reached = FALSE
-    emergency = FALSE
-    target_depth = 2
-    sub.submerged = TRUE
-  -> State: 3.2 <-
--- specification  G (sub.hatch = open -> !(next(sub.depth) = sub.depth - 1))  is true
--- specification  G (sub.depth > 0 -> sub.hatch = closed)  is false
--- as demonstrated by the following execution sequence
-Trace Description: LTL Counterexample
-Trace Type: Counterexample
-  -> State: 4.1 <-
-    sub.hatch = open
-    sub.lock = unlocked
+  -> State: 2.9 <-
     sub.direction = flat
     sub.depth = 0
-    target_reached = FALSE
-    emergency = FALSE
-    target_depth = 1
     sub.submerged = FALSE
-  -> State: 4.2 <-
+  -> State: 2.10 <-
+    sub.lock = unlocked
     sub.direction = down
-    sub.depth = 1
-    sub.submerged = TRUE
   -- Loop starts here
-  -> State: 4.3 <-
-    sub.hatch = closed
+  -> State: 2.11 <-
     sub.lock = locked
     sub.direction = flat
-    target_reached = TRUE
-  -> State: 4.4 <-
--- specification  G !(sub.lock = locked -> sub.hatch = open)  is false
--- as demonstrated by the following execution sequence
-Trace Description: LTL Counterexample
-Trace Type: Counterexample
-  -> State: 5.1 <-
-    sub.hatch = open
-    sub.lock = unlocked
+    sub.depth = 1
+    sub.submerged = TRUE
+  -> State: 2.12 <-
+    sub.direction = up
+  -> State: 2.13 <-
     sub.direction = flat
     sub.depth = 0
-    target_reached = FALSE
-    emergency = FALSE
-    target_depth = 1
     sub.submerged = FALSE
-  -> State: 5.2 <-
-    sub.hatch = closed
-    sub.lock = locked
-    sub.direction = down
-    sub.depth = 1
-    sub.submerged = TRUE
-  -- Loop starts here
-  -> State: 5.3 <-
-    sub.direction = flat
-    target_reached = TRUE
-  -> State: 5.4 <-
--- specification  G (sub.submerged -> sub.lock = locked)  is false
--- as demonstrated by the following execution sequence
-Trace Description: LTL Counterexample
-Trace Type: Counterexample
-  -> State: 6.1 <-
-    sub.hatch = open
+  -> State: 2.14 <-
     sub.lock = unlocked
-    sub.direction = flat
-    sub.depth = 0
-    target_reached = FALSE
-    emergency = FALSE
-    target_depth = 1
-    sub.submerged = FALSE
-  -> State: 6.2 <-
     sub.direction = down
-    sub.depth = 1
-    sub.submerged = TRUE
-  -- Loop starts here
-  -> State: 6.3 <-
-    sub.hatch = closed
-    sub.lock = locked
-    sub.direction = flat
-    target_reached = TRUE
-  -> State: 6.4 <-
--- specification  G !(sub.hatch = open -> sub.lock = locked)  is false
--- as demonstrated by the following execution sequence
-Trace Description: LTL Counterexample
-Trace Type: Counterexample
-  -- Loop starts here
-  -> State: 7.1 <-
-    sub.hatch = closed
-    sub.lock = locked
-    sub.direction = flat
-    sub.depth = 1
-    target_reached = FALSE
     emergency = FALSE
-    target_depth = 2
+  -> State: 2.15 <-
+    sub.lock = locked
+    sub.direction = flat
+    sub.depth = 1
+    emergency = TRUE
     sub.submerged = TRUE
-  -> State: 7.2 <-
-
+	
+	solution:
+	-- specification  G (emergency -> next(sub.direction) != down)  is true
+	not the current state needs to be that it should go down, but the next upcoming state. Otherwise the submarine is able to go down during an emergency.
+next (sub.direction) := case
+	 target_reached : flat;
+	 !target_reached & !emergency & target_depth > sub.depth : down;
+	 emergency & sub.depth > 0: up;
+	 emergency & sub.depth = 0: flat;
+	 !emergency & sub.depth = 0 & sub.hatch = closed: { flat, down };
+	 sub.depth = 0: {flat, down};--moreover we had to change the order of case elements here so these elements about sub.depth have to be at the end so they are only regarded if the ones before are not fulfilled
+	 sub.depth = 10: {flat, up};
+    TRUE: { up, flat, down };
+  esac;
 --/
 /--
 simulate -i -k 5 simulate 5 states and document the outcome
