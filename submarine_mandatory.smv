@@ -49,8 +49,10 @@ ASSIGN
 
   next (sub.lock) := case -- control lock
     next(sub.hatch) = open: unlocked; -- cannot lock an open hatch
-	sub.depth > 0: locked; -- lock hatch if depth is greater than zero
-	sub.depth = 0 & next(sub.direction) = down: locked; -- lock if a dive is about to be initiated(going from depth = 0 to depth = 1)
+    
+  	sub.depth > 0: locked; -- lock hatch if depth is greater than zero
+	  sub.depth = 0 & sub.hatch=closed & next(sub.direction) = down: locked; -- lock if a dive is about to be initiated(going from depth = 0 to depth = 1)
+    sub.hatch=closed: {locked,unlocked};
     -- TODO: ensure hatch is locked when needed
     TRUE: { locked, unlocked };
   esac;
@@ -64,22 +66,21 @@ ASSIGN
   init (sub.direction) := flat; -- flat when controller restarts
 
   next (sub.direction) := case
-	 target_reached : flat;
-	 !target_reached & !emergency & target_depth > sub.depth : down;
+	 target_reached & sub.lock=locked: flat;
+	 !target_reached & !emergency & sub.lock = locked & target_depth > sub.depth : down;
 	 emergency & sub.depth > 0: up;
 	 emergency & sub.depth = 0: flat;
-	 !emergency & sub.depth = 0 & sub.hatch = closed: { flat, down };
-	 sub.depth = 0: {flat, down};
+	 !emergency & sub.depth = 0 & sub.lock = locked: { flat, down };
 	 sub.depth = 10: {flat, up};
-    TRUE: { up, flat, down };
+  TRUE: sub.direction;
   esac;
   
   FAIRNESS
   sub.depth = 0;
-  /--
+
   FAIRNESS
-  sub.direction = up;
-  --/
+  sub.lock = locked;
+
   
   
   
@@ -94,13 +95,15 @@ ASSIGN
   G(F next(sub.depth) = 0);--liveness -- 3. The submarine always has the capability to get back to the surface.--Fairness property?--true
   CTLSPEC
   AG(!emergency -> AF(emergency | target_reached));--liveness -- 4. The submarine has the capability to reach target_depth , unless there is an emergency.--true
+  
   LTLSPEC
   G((emergency | sub.hatch = open) -> next(sub.direction) != down);--safety -- 5. In an emergency or when the hatch is open, the submarine does not go down.--false
-  /--
-  LTLSPEC
-  G(sub.hatch = open -> !(next(sub.depth) = sub.depth - 1));--safety -- 5. In an emergency or when the hatch is open, the submarine does not go down.
+
+
+
   LTLSPEC
   G(emergency U sub.depth = 0);--safety -- 6. An emergency can only be resolved by resurfacing (so emergency cannot go back to false once set unless depth=0.
+ /--
   LTLSPEC
   G(sub.depth > 0 -> sub.hatch = closed);--safety -- 7. The hatch is always closed when submerged, i.e., depth>0.
   LTLSPEC
