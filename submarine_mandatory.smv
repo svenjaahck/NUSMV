@@ -50,7 +50,7 @@ ASSIGN
   next (sub.lock) := case -- control lock
     next(sub.hatch) = open: unlocked; -- cannot lock an open hatch
     
-  	sub.depth > 0: locked; -- lock hatch if depth is greater than zero
+  	next(sub.depth) > 0: locked; -- lock hatch if depth is greater than zero
 	  sub.depth = 0 & sub.hatch=closed & next(sub.direction) = down: locked; -- lock if a dive is about to be initiated(going from depth = 0 to depth = 1)
     sub.hatch=closed: {locked,unlocked};
     -- TODO: ensure hatch is locked when needed
@@ -102,16 +102,19 @@ ASSIGN
 
 
   LTLSPEC
-  G(emergency U sub.depth = 0);--safety -- 6. An emergency can only be resolved by resurfacing (so emergency cannot go back to false once set unless depth=0.
- /--
+  G(emergency -> (next(emergency) != FALSE U sub.depth = 0));--safety -- 6. An emergency can only be resolved by resurfacing (so emergency cannot go back to false once set unless depth=0.
+ 
   LTLSPEC
-  G(sub.depth > 0 -> sub.hatch = closed);--safety -- 7. The hatch is always closed when submerged, i.e., depth>0.
+  G( sub.submerged -> (sub.hatch = closed));--safety -- 7. The hatch is always closed when submerged, i.e., depth>0.
+  
   LTLSPEC
-  G !(sub.lock = locked -> sub.hatch = open);--safety -- 8. The hatch can only open when it is unlocked.
+  G (sub.lock = locked -> sub.hatch != open);--safety -- 8. The hatch can only open when it is unlocked.
+
   LTLSPEC  
   G(sub.submerged -> sub.lock = locked);--safety -- 9. The hatch lock must be locked whenever depth>0.
+  
   LTLSPEC
-  G!(sub.hatch = open -> sub.lock = locked);-- safety --10. The lock can only be in state locked when the hatch is closed.
+  G(sub.hatch = open -> sub.lock != locked);-- safety --10. The lock can only be in state locked when the hatch is closed.
   --/
 
 
