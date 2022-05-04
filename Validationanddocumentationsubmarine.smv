@@ -1,0 +1,122 @@
+
+/--
+Group 6: Noah Rahimzadagan, Philipe Granhäll, Svenja Haeckel
+--/
+
+
+
+
+/--
+Example error trace for a mutated model 
+before:
+next (depth) := case -- next depth depending on direction
+	direction = flat : depth; -- if the direction is flat, the depth remains the same
+	direction = up : depth - 1; -- if the direction is up, the depth is reduced by one
+	direction = down : depth + 1; -- if the direction is down, the depth is increasing by one
+	TRUE: depth;
+	esac;
+--error message
+file submarine_mandatory.smv: line 36: cannot assign value 11 to variable sub.depth
+
+the direction should be flat at 10 and the depth should remain to not reach number 11 as a value. That is why we added extra conditions for depth before reducing/ increasing it.
+--
+after:
+  next (depth) := case -- next depth depending on direction
+	direction = flat : depth; -- if the direction is flat, the depth remains the same
+	direction = up & depth > 0: depth - 1; -- if the direction is up, the depth is reduced by one
+	direction = down & depth < 10: depth + 1; -- if the direction is down, the depth is increasing by one
+	TRUE: depth;
+    -- TODO: define next state
+	esac;
+--/
+
+/--
+Example error trace for a mutated property
+-- specification  G (emergency -> !(sub.direction = down))  is false
+-- as demonstrated by the following execution sequence
+Trace Description: LTL Counterexample
+Trace Type: Counterexample
+  -> State: 2.1 <-
+    sub.hatch = closed
+    sub.lock = locked
+    sub.direction = flat
+    sub.depth = 7
+    target_reached = FALSE
+    emergency = TRUE
+    target_depth = 8
+    sub.submerged = TRUE
+  -> State: 2.2 <-
+    sub.direction = up
+  -> State: 2.3 <-
+    sub.depth = 6
+  -> State: 2.4 <-
+    sub.depth = 5
+  -> State: 2.5 <-
+    sub.depth = 4
+  -> State: 2.6 <-
+    sub.depth = 3
+  -> State: 2.7 <-
+    sub.depth = 2
+  -> State: 2.8 <-
+    sub.depth = 1
+  -> State: 2.9 <-
+    sub.direction = flat
+    sub.depth = 0
+    sub.submerged = FALSE
+  -> State: 2.10 <-
+    sub.lock = unlocked
+    sub.direction = down
+  -- Loop starts here
+  -> State: 2.11 <-
+    sub.lock = locked
+    sub.direction = flat
+    sub.depth = 1
+    sub.submerged = TRUE
+  -> State: 2.12 <-
+    sub.direction = up
+  -> State: 2.13 <-
+    sub.direction = flat
+    sub.depth = 0
+    sub.submerged = FALSE
+  -> State: 2.14 <-
+    sub.lock = unlocked
+    sub.direction = down
+    emergency = FALSE
+  -> State: 2.15 <-
+    sub.lock = locked
+    sub.direction = flat
+    sub.depth = 1
+    emergency = TRUE
+    sub.submerged = TRUE
+	
+	solution:
+	-- specification  G (emergency -> next(sub.direction) != down)  is true
+	not the current state needs to be that it should go down, but the next upcoming state. Otherwise the submarine is able to go down during an emergency.
+next (sub.direction) := case
+	 target_reached : flat;
+	 !target_reached & !emergency & target_depth > sub.depth : down;
+	 emergency & sub.depth > 0: up;
+	 emergency & sub.depth = 0: flat;
+	 !emergency & sub.depth = 0 & sub.hatch = closed: { flat, down };
+	 sub.depth = 0: {flat, down};--moreover we had to change the order of case elements here so these elements about sub.depth have to be at the end so they are only regarded if the ones before are not fulfilled
+	 sub.depth = 10: {flat, up};
+    TRUE: { up, flat, down };
+  esac;
+--/
+/--
+simulate -i -k 5 simulate 5 states and document the outcome
+--/
+
+/--
+missing feature in the model
+--/
+
+/--
+property for missing feature
+--/
+
+
+
+
+
+

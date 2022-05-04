@@ -114,5 +114,3 @@ ASSIGN
   LTLSPEC
   G(sub.hatch = open -> sub.lock != locked);-- safety --10. The lock can only be in state locked when the hatch is closed.
 
-
-

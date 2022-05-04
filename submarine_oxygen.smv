@@ -1,4 +1,3 @@
-
 /--
 Group 6: Noah Rahimzadagan, Philipe Granhäll, Svenja Haeckel
 --/
@@ -9,6 +8,7 @@ MODULE submarine
     lock:  { unlocked, locked }; -- hatch lock
     direction: { up, flat, down }; -- direction (controller by MAIN)
     depth: 0..10;  -- depth; depth always stays in a interval between 0 and 10
+	oxygen: 0..15; -- oxygen supply
 
 DEFINE
   submerged := depth > 0;
@@ -33,6 +33,12 @@ ASSIGN
 	TRUE: depth;
     -- TODO: define next state
 	esac;
+		
+  init(oxygen) := 15;
+  next (oxygen) := case 
+	sub.direction = up : oxygen + 1; -- when the submarine is resurfacing the supply increases by 1 in a step
+	sub.direction = down : oxygen - 1; -- when submerged decreases oxygen supply by 1
+	
 
 MODULE main
 VAR
@@ -81,10 +87,8 @@ ASSIGN
   FAIRNESS
   sub.lock = locked;
 
-  
-  
-  
- 
+
+
 -- Properties --
 
   LTLSPEC
@@ -113,6 +117,3 @@ ASSIGN
   
   LTLSPEC
   G(sub.hatch = open -> sub.lock != locked);-- safety --10. The lock can only be in state locked when the hatch is closed.
-
-
-
