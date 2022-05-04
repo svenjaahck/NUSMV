@@ -9,7 +9,6 @@ MODULE submarine
     lock:  { unlocked, locked }; -- hatch lock
     direction: { up, flat, down }; -- direction (controller by MAIN)
     depth: 0..10;  -- depth; depth always stays in a interval between 0 and 10
-
 DEFINE
   submerged := depth > 0;
 
