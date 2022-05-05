@@ -127,7 +127,5 @@ ASSIGN
   G(sub.hatch = open -> sub.lock != locked);-- safety --10. The lock can only be in state locked when the hatch is closed.
 
   LTLSPEC
-  --G(((( sub.territory=restricted -> sub.depth >0)U(emergency)) | G(sub.territory=restricted -> sub.depth >0))
-  --|(!emergency & next(emergency)=FALSE& sub.lock=locked&sub.territory=restricted&sub.depth=0 -> next(sub.direction)=down)); -- Restricted access. Weak until where sub.depth is less than 0 as long there is no emergency
   G((sub.territory=restricted & !emergency)-> sub.depth >0 |
-   ((!emergency &sub.territory=restricted & sub.depth=0 &sub.lock=locked)->next(sub.direction)=down ))
+   ((sub.territory=restricted & sub.depth=0 &sub.lock=locked)->next(sub.direction)=down ))
