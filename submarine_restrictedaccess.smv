@@ -24,6 +24,8 @@ ASSIGN
     hatch = closed : { locked, unlocked };
   esac;
 
+  
+
   next (hatch) := (hatch = closed & lock = locked) ? closed : { open, closed };
   -- the hatch stays closed when locked and closes non-deterministically when it is open
 
@@ -34,13 +36,14 @@ ASSIGN
 	TRUE: depth;
     -- TODO: define next state
 	esac;
-	
-  init(territory) := {friendly, restricted};
-  next(territory) := case
-    depth = 0 | next(depth) = 0: territory; --unsure
-    TRUE: territory;                       
-    esac;
-    
+
+  next (territory) := case
+    depth=0 & territory=friendly:friendly;
+    next(depth) = 0 & territory=friendly: friendly;
+    TRUE: {friendly,restricted};
+  esac;
+
+
 
 MODULE main
 VAR
@@ -74,12 +77,12 @@ ASSIGN
   init (sub.direction) := flat; -- flat when controller restarts
 
   next (sub.direction) := case
+   !emergency &sub.territory=restricted & sub.lock = locked & sub.depth=0:down; 
 	 target_reached & sub.lock=locked: flat;
 	 !target_reached & !emergency & sub.lock = locked & target_depth > sub.depth : down;
 	 emergency & sub.depth > 0: up;
 	 emergency & sub.depth = 0: flat;
 	 !emergency & sub.depth = 0 & sub.lock = locked: { flat, down };
-	 sub.territory = restricted & next(sub.depth) = 2 : {down, flat};
 	 sub.depth = 10: {flat, up};
   TRUE: sub.direction;
   esac;
@@ -89,12 +92,6 @@ ASSIGN
 
   FAIRNESS
   sub.lock = locked;
-  
-  FAIRNESS
-  sub.territory = friendly;
-  
-  FAIRNESS
-  sub.territory = restricted;
 
   
   
@@ -107,7 +104,7 @@ ASSIGN
   LTLSPEC
   G(sub.depth >= 0 & sub.depth <= 10);--safety -- 2. The depth always stays within interval 0..10.
   LTLSPEC
-  G(F next(sub.depth) = 0);--liveness -- 3. The submarine always has the capability to get back to the surface.--Fairness property?
+  G(F next(sub.depth) = 0);--liveness -- 3. The submarine always has the capability to get back to the surface.
   CTLSPEC
   AG(!emergency -> AF(emergency | target_reached));--liveness -- 4. The submarine has the capability to reach target_depth , unless there is an emergency.
   
@@ -126,9 +123,9 @@ ASSIGN
   LTLSPEC  
   G(sub.submerged -> sub.lock = locked);--safety -- 9. The hatch lock must be locked whenever depth>0.
   
-  LTLSPEC 
-  G(sub.hatch = open -> sub.lock != locked);-- safety --10. The lock can only be in state locked when the hatch is closed.
-  
   LTLSPEC
-  G(emergency = TRUE & sub.territory = restricted -> next(sub.depth) = 0 U emergency = TRUE); -- should not go up in restricted area unless emergency
+  G(sub.hatch = open -> sub.lock != locked);-- safety --10. The lock can only be in state locked when the hatch is closed.
 
+  LTLSPEC
+  G((sub.territory=restricted & !emergency)-> sub.depth >0 |
+   ((sub.territory=restricted & sub.depth=0 &sub.lock=locked)->next(sub.direction)=down ))
