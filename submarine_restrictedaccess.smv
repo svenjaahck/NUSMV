@@ -69,7 +69,6 @@ ASSIGN
   esac;
 
   next (emergency) := case -- emergency occurs non-deterministically
-    --sub.territory=restricted & sub.depth = 0: emergency; ---- dont forget this ½
     sub.depth = 0 & next(sub.depth) = 0: { TRUE, FALSE }; -- possibility to resolve when on surface
     emergency : TRUE;
     TRUE: { TRUE, FALSE };
@@ -78,7 +77,7 @@ ASSIGN
   init (sub.direction) := flat; -- flat when controller restarts
 
   next (sub.direction) := case
-   sub.territory=restricted & sub.lock = locked & sub.depth=0 & next(emergency)=FALSE:down; 
+   !emergency &sub.territory=restricted & sub.lock = locked & sub.depth=0:down; 
 	 target_reached & sub.lock=locked: flat;
 	 !target_reached & !emergency & sub.lock = locked & target_depth > sub.depth : down;
 	 emergency & sub.depth > 0: up;
@@ -128,6 +127,7 @@ ASSIGN
   G(sub.hatch = open -> sub.lock != locked);-- safety --10. The lock can only be in state locked when the hatch is closed.
 
   LTLSPEC
-  G(((( sub.territory=restricted -> sub.depth >0)U(emergency)) | G(sub.territory=restricted -> sub.depth >0))
-  |(!emergency &next(emergency)=FALSE& sub.lock=locked&sub.territory=restricted&sub.depth=0 -> next(sub.direction)=down)); -- Restricted access. Weak until where sub.depth is less than 0 as long there is no emergency
-
+  --G(((( sub.territory=restricted -> sub.depth >0)U(emergency)) | G(sub.territory=restricted -> sub.depth >0))
+  --|(!emergency & next(emergency)=FALSE& sub.lock=locked&sub.territory=restricted&sub.depth=0 -> next(sub.direction)=down)); -- Restricted access. Weak until where sub.depth is less than 0 as long there is no emergency
+  G((sub.territory=restricted & !emergency)-> sub.depth >0 |
+   ((!emergency &sub.territory=restricted & sub.depth=0 &sub.lock=locked)->next(sub.direction)=down ))
