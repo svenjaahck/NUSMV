@@ -130,7 +130,7 @@ Trace Type: Simulation
 /--
 missing feature in the model: Security obstacle detection
 
-There should be a detection of obstacles in a range of 20m. If an Obstacle in a lower Range is detected, the direction should not be flat. Therefore we need to implement a variable obstacle. When it reaches obstacle_detected(boolean, non-deterministic value) Obstacles has reached value 20. Obstacles is assigned to the value 20m to 50m. When the obstacle in a sufficient distance(50m, obstacle = 50), obstacle_detected turns false again and the submarine can have the direction flat again.
+There should be a detection of obstacles in a range of 20m. If an Obstacle in a lower Range is detected, the direction should not be flat. Therefore we need to implement a variable obstacle. When it reaches obstacle_detected(boolean, non-deterministic value) Obstacles has reached value 20 or less. Obstacles is assigned to the value 20m to 50m. When the obstacle in a sufficient distance(50m, obstacle = 50), obstacle_detected turns false again and the submarine can have the direction flat again.
 --/
 
 /--

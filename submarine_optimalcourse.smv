@@ -80,11 +80,7 @@ ASSIGN
 
   FAIRNESS
   sub.lock = locked;
-
   
-  
-  
- 
 -- Properties --
 
   LTLSPEC
@@ -97,7 +93,7 @@ ASSIGN
   AG(!emergency -> AF(emergency | target_reached));--liveness -- 4. The submarine has the capability to reach target_depth , unless there is an emergency.
   
   LTLSPEC
-  G((emergency | sub.hatch = open) -> next(sub.direction) != down);--safety -- 5. In an emergency or when the hatch is open, the submarine does not go down.
+  G((emergency | sub.hatch = open) -> next(sub.direction) != down);--safety -- 5. In an emergency or when the hatch is open, the submarine does not go down. 
   
   LTLSPEC
   G(emergency -> (next(emergency) != FALSE U sub.depth = 0));--safety -- 6. An emergency can only be resolved by resurfacing (so emergency cannot go back to false once set unless depth=0.
@@ -114,3 +110,10 @@ ASSIGN
   LTLSPEC
   G(sub.hatch = open -> sub.lock != locked);-- safety --10. The lock can only be in state locked when the hatch is closed.
 
+--properties optimal course
+AG(!emergency -> AF(emergency | target_reached));--now turning into a safety property that the submarine always reaches target_depth before going back to the surface.
+we already had the strengthened property that says that the target needs to be reached or there has to be an emergency
+
+
+ FAIRNESS
+ sub.lock = locked;--the lock always needs to be able to be locked to preserve the ability to go down after reaching the surface in an emergency.
